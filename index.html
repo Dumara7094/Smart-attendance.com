@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="am">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#1769aa">
 <title>SMART Attendance + Payroll</title>
 <script src="https://unpkg.com/html5-qrcode" defer></script>
+<!-- Firebase Realtime Database (TEST VERSION) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,"Noto Sans Ethiopic",sans-serif;background:#f3f6f9;color:#17212b}
 .hidden{display:none!important}.cover{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;background:linear-gradient(135deg,#1769aa,#0d47a1);color:#fff}
@@ -22,6 +23,13 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}.stat{background:#eef6ff;border-radius:15px;padding:15px}.stat b{display:block;font-size:24px;margin-top:5px}
 #reader{width:100%;max-width:400px;margin:15px auto}footer{text-align:center;padding:25px;color:#71808f}.badge{padding:5px 9px;border-radius:20px;background:#e7f6ea;color:#167b2c;font-size:13px}
 .payrollTotal{background:#e8f5e9;border-radius:15px;padding:18px;margin:12px 0}.net{font-weight:bold;font-size:18px}
+
+.appMenu{position:sticky;top:0;z-index:50;background:#fff;padding:10px 12px;box-shadow:0 3px 12px #00000014;border-bottom:1px solid #dce4ec}
+.appMenuInner{max-width:1100px;margin:auto;display:flex;gap:8px;overflow-x:auto;align-items:center;padding:2px}
+.appMenu button{white-space:nowrap;flex:0 0 auto;background:#e8eef5;color:#17212b;padding:10px 13px;font-size:14px;margin:0}
+.appMenu button:first-child{background:#1769aa;color:#fff}
+.menuStats{margin:12px 0}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
 @media(max-width:600px){.cover h1{font-size:30px}.cover h2{font-size:23px}.clock{font-size:25px}button{width:100%;margin:5px 0}th,td{font-size:13px;padding:8px}}
 </style>
 </head>
@@ -45,8 +53,20 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <p>የተዘጋጀው በዱማራ ዱዌ</p>
 </div></header>
 
+<nav class="appMenu" aria-label="ዋና ምርጫ">
+  <div class="appMenuInner">
+    <button onclick="menuGo('dashboardHome')">🏠 ዋና ገጽ</button>
+    <button onclick="menuGo('employeeEntry')">👤 ሠራተኛ</button>
+    <button onclick="menuGo('attendanceActions')">🕒 Attendance</button>
+    <button onclick="menuGo('attendanceHistory')">📊 ታሪክ</button>
+    <button onclick="menuGo('leaveRequest')">🏖️ ፈቃድ</button>
+    <button onclick="menuGo('adminSection')">🔐 Admin</button>
+    <button onclick="menuGo('payrollSection')">💰 Payroll</button>
+  </div>
+</nav>
+
 <main class="container">
-<div class="card">
+<div class="card" id="dashboardHome">
 <h2>🕐 የአሁኑ ሰዓት</h2><div id="clock" class="clock">--:--:--</div>
 <div id="dateText" style="text-align:center">--</div>
 </div>
@@ -58,7 +78,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <p>የሰዓቱ ቁጥጥር በኢትዮጵያ ሰዓት ነው።</p>
 </div>
 
-<div class="card">
+<div class="card" id="employeeEntry">
 <h2>👤 የሠራተኛ መግቢያ</h2>
 <input id="employeeID" placeholder="Employee ID ለምሳሌ EMP001" autocomplete="off">
 <button class="primary" onclick="verifyEmployee()">🔎 ሠራተኛ ፈልግ</button>
@@ -67,7 +87,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <div id="reader"></div><div id="employeeInfo"></div>
 </div>
 
-<div class="card">
+<div class="card" id="attendanceActions">
 <h2>📝 Attendance</h2>
 <button id="checkInBtn" class="success" onclick="checkIn()">🟢 Check In</button>
 <button id="checkOutBtn" class="danger" onclick="checkOut()">🔴 Check Out</button>
@@ -81,14 +101,14 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <div class="stat">Check Out<b id="cout">--</b></div>
 </div>
 
-<div class="card">
+<div class="card" id="attendanceHistory">
 <h2>📊 Attendance History</h2><div style="overflow-x:auto"><table>
 <thead><tr><th>ቀን</th><th>Employee ID</th><th>ሙሉ ስም</th><th>Check In</th><th>Check Out</th><th>GPS</th></tr></thead>
 <tbody id="history"><tr><td colspan="6">Employee ID ያስገቡ።</td></tr></tbody>
 </table></div>
 </div>
 
-<div class="card">
+<div class="card" id="leaveRequest">
 <h2>🏖️ የፈቃድ መጠየቂያ</h2>
 <p>ሠራተኛው የፈቃድ ጥያቄ ለAdmin ይልካል።</p>
 <select id="leaveType">
@@ -114,24 +134,30 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 </table></div>
 </div>
 
-<div class="card">
+<div class="card" id="adminSection">
 <h2>🔐 Admin</h2>
 <input type="password" id="adminPassword" placeholder="Admin Password" autocomplete="off">
 <button class="primary" onclick="adminLogin()">Admin Login</button>
 
 <div id="adminPanel" class="hidden">
-<hr><h3>Admin Dashboard</h3>
+<hr><h3>📊 Admin Dashboard — አጠቃላይ መረጃ</h3>
+<div class="grid menuStats">
+  <div class="stat">ጠቅላላ ሠራተኞች<b id="menuStaffCount">0</b></div>
+  <div class="stat">ዛሬ Check-in<b id="menuTodayCount">0</b></div>
+  <div class="stat">የፈቃድ ጥያቄዎች<b id="menuLeaveCount">0</b></div>
+  <div class="stat">Pending ፈቃድ<b id="menuPendingCount">0</b></div>
+</div>
 <button class="primary" onclick="downloadReport()">📄 Attendance CSV</button>
 <button class="primary" onclick="showAllRecords()">👥 ሁሉንም Attendance አሳይ</button>
 <button class="danger" onclick="clearRecords()">🗑️ Attendance አጥፋ</button>
 
-<hr><h2>🏖️ Leave Management</h2>
+<hr><h2 id="leaveManagement">🏖️ Leave Management</h2>
 <div style="overflow-x:auto"><table>
 <thead><tr><th>ID</th><th>ስም</th><th>ዓይነት</th><th>ከ</th><th>እስከ</th><th>ምክንያት</th><th>ሁኔታ</th><th>Action</th></tr></thead>
 <tbody id="adminLeaveTable"><tr><td colspan="8">ምንም የፈቃድ ጥያቄ የለም።</td></tr></tbody>
 </table></div>
 
-<hr><h2>💰 Payroll</h2><p>የኢትዮጵያ ዓመትና ወር ይምረጡ።</p>
+<hr><h2 id="payrollSection">💰 Payroll</h2><p>የኢትዮጵያ ዓመትና ወር ይምረጡ።</p>
 <div class="grid">
 <div><label>የኢትዮጵያ ዓመት</label><input id="payYear" type="number" min="2000" max="2100"></div>
 <div><label>ወር</label><select id="payMonth">
@@ -155,12 +181,66 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 </div>
 
 <script>
+// Firebase connection for TESTING only. Secure Firebase Authentication and rules before real staff data.
+const firebaseConfig = {
+  apiKey: "AIzaSyBzI5x9-16-kIvd4HAd5U4HZh3PRvd62sk",
+  authDomain: "smart-attendance-chabbe.firebaseapp.com",
+  databaseURL: "https://smart-attendance-chabbe-default-rtdb.firebaseio.com/",
+  projectId: "smart-attendance-chabbe",
+  storageBucket: "smart-attendance-chabbe.firebasestorage.app",
+  messagingSenderId: "160044509883",
+  appId: "1:160044509883:web:9adf9a656b40799529979e",
+  measurementId: "G-NKN0TF7B0Z"
+};
+let firebaseDB=null, firebaseReady=false, firebaseApplyingRemote=false;
+try {
+  if (typeof firebase !== "undefined") {
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    firebaseDB=firebase.database();
+    firebaseReady=true;
+  }
+} catch (err) {
+  console.error("Firebase initialization failed:", err);
+}
+
 let currentEmployee=null,currentLocation={latitude:"",longitude:""};
 let records=JSON.parse(localStorage.getItem("smartAttendanceRecords")||"[]");
 let salaries=JSON.parse(localStorage.getItem("smartAttendanceSalaries")||"{}");
 let leaveRequests=JSON.parse(localStorage.getItem("smartAttendanceLeaveRequests")||"[]");
 let qrScanner=null,lastPayroll=[];
 const ADMIN_PIN="12345678";
+
+function saveAllToFirebase(){
+ if(!firebaseReady||firebaseApplyingRemote||!firebaseDB)return;
+ firebaseDB.ref("smartAttendance/records").set(records).catch(e=>console.error("Saving records failed:",e));
+ firebaseDB.ref("smartAttendance/salaries").set(salaries).catch(e=>console.error("Saving salaries failed:",e));
+ firebaseDB.ref("smartAttendance/leaveRequests").set(leaveRequests).catch(e=>console.error("Saving leave requests failed:",e));
+}
+function startFirebaseSync(){
+ if(!firebaseReady||!firebaseDB)return;
+ const root=firebaseDB.ref("smartAttendance");
+ root.once("value").then(snapshot=>{
+   if(!snapshot.exists()){
+     // First connection: seed the database with this browser's existing test data.
+     if(records.length||Object.keys(salaries).length||leaveRequests.length) saveAllToFirebase();
+     else root.set({records:[],salaries:salaries,leaveRequests:[]}).catch(e=>console.error(e));
+   }
+ }).catch(e=>console.error("Firebase read failed:",e));
+ root.on("value",snapshot=>{
+   if(!snapshot.exists())return;
+   const data=snapshot.val()||{};
+   firebaseApplyingRemote=true;
+   records=Array.isArray(data.records)?data.records:[];
+   salaries=(data.salaries&&typeof data.salaries==="object")?data.salaries:{};
+   leaveRequests=Array.isArray(data.leaveRequests)?data.leaveRequests:[];
+   localStorage.setItem("smartAttendanceRecords",JSON.stringify(records));
+   localStorage.setItem("smartAttendanceSalaries",JSON.stringify(salaries));
+   localStorage.setItem("smartAttendanceLeaveRequests",JSON.stringify(leaveRequests));
+   firebaseApplyingRemote=false;
+   try{render();renderMyLeave();renderAdminLeave();updateMenuStats();if(!document.getElementById("adminPanel").classList.contains("hidden"))renderSalaryTable();}catch(e){}
+ },e=>console.error("Firebase listener failed:",e));
+}
+
 
 const employees=[
 {id:"EMP001",name:"ዱማራ ዱዌ",qr:"EMP001"},{id:"EMP002",name:"መስቀል ሳሙኤል",qr:"EMP002"},
@@ -244,7 +324,7 @@ function checkOut(){
  r.checkOut=ethiopiaDate().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
  r.latitude=currentLocation.latitude;r.longitude=currentLocation.longitude;save();render();showStatus("✅ Check-out በስኬት ተመዝግቧል።","ok");
 }
-function save(){localStorage.setItem("smartAttendanceRecords",JSON.stringify(records));}
+function save(){localStorage.setItem("smartAttendanceRecords",JSON.stringify(records));saveAllToFirebase();}
 
 function render(){
  const h=document.getElementById("history");
@@ -267,7 +347,7 @@ function scanQR(){
 }
 function stopQR(){if(!qrScanner)return;qrScanner.stop().then(()=>{try{qrScanner.clear()}catch(e){}qrScanner=null}).catch(()=>qrScanner=null);}
 
-function saveLeaveRequests(){localStorage.setItem("smartAttendanceLeaveRequests",JSON.stringify(leaveRequests));}
+function saveLeaveRequests(){localStorage.setItem("smartAttendanceLeaveRequests",JSON.stringify(leaveRequests));saveAllToFirebase();}
 function leaveStatus(s){
  if(s==="Approved")return '<span class="badge">✅ Approved</span>';
  if(s==="Rejected")return '<span class="badge" style="background:#fdecec;color:#b42318">❌ Rejected</span>';
@@ -298,11 +378,11 @@ function deleteLeave(id){if(!confirm("የፈቃድ መዝገቡን ማጥፋት 
 
 function adminLogin(){
  if(document.getElementById("adminPassword").value!==ADMIN_PIN){showStatus("❌ Admin Password ትክክል አይደለም።","err");return;}
- document.getElementById("adminPanel").classList.remove("hidden");renderSalaryTable();renderAdminLeave();showStatus("🔐 Admin Dashboard ተከፍቷል።","ok");
+ document.getElementById("adminPanel").classList.remove("hidden");renderSalaryTable();renderAdminLeave();updateMenuStats();showStatus("🔐 Admin Dashboard ተከፍቷል።","ok");
 }
 function renderSalaryTable(){document.getElementById("salaryTable").innerHTML=employees.map(e=>`<tr><td><b>${escapeHTML(e.id)}</b></td><td>${escapeHTML(e.name)}</td><td><input id="salary_${e.id}" type="number" min="0" step="0.01" value="${Number(salaries[e.id]||0)}"></td></tr>`).join("");}
-function saveSalaries(){employees.forEach(e=>{const x=document.getElementById("salary_"+e.id);if(x)salaries[e.id]=Number(x.value)||0;});localStorage.setItem("smartAttendanceSalaries",JSON.stringify(salaries));alert("✅ Salary ተቀምጧልፍ");}
-function saveSalariesSilent(){employees.forEach(e=>{const x=document.getElementById("salary_"+e.id);if(x)salaries[e.id]=Number(x.value)||0;});localStorage.setItem("smartAttendanceSalaries",JSON.stringify(salaries));}
+function saveSalaries(){employees.forEach(e=>{const x=document.getElementById("salary_"+e.id);if(x)salaries[e.id]=Number(x.value)||0;});localStorage.setItem("smartAttendanceSalaries",JSON.stringify(salaries));saveAllToFirebase();alert("✅ Salary ተቀምጧል።");}
+function saveSalariesSilent(){employees.forEach(e=>{const x=document.getElementById("salary_"+e.id);if(x)salaries[e.id]=Number(x.value)||0;});localStorage.setItem("smartAttendanceSalaries",JSON.stringify(salaries));saveAllToFirebase();}
 
 function gregorianToJD(y,m,d){let a=Math.floor((14-m)/12),yy=y+4800-a,mm=m+12*a-3;return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045;}
 function jdToEthiopian(jd){const y=Math.floor((4*(jd-1723856)+1463)/1461),m=1+Math.floor((jd-(1723856+365*(y-1)+Math.floor(y/4)))/30),d=jd-(1723856+365*(y-1)+Math.floor(y/4)+30*(m-1))+1;return{year:y,month:m,day:d};}
@@ -354,201 +434,32 @@ function downloadBlob(content,name){const u=URL.createObjectURL(new Blob([conten
 function showAllRecords(){if(!records.length){alert("Attendance መዝገብ የለም።");return;}document.getElementById("history").innerHTML=records.slice().reverse().map(r=>`<tr><td>${escapeHTML(r.date)}</td><td><b>${escapeHTML(r.id)}</b></td><td><b>${escapeHTML(r.name)}</b></td><td>${escapeHTML(r.checkIn||"--")}</td><td>${escapeHTML(r.checkOut||"--")}</td><td>${r.latitude?"📍 GPS":"--"}</td></tr>`).join("");}
 function clearRecords(){if(!confirm("በዚህ ስልክ ያሉትን Attendance መዝገቦች ማጥፋት ይፈልጋሉ?"))return;records=[];save();render();showStatus("🗑️ Attendance መዝገብ ተሰርዟል።","ok");}
 function logout(){stopQR();currentEmployee=null;currentLocation={latitude:"",longitude:""};document.getElementById("employeeID").value="";document.getElementById("employeeInfo").innerHTML="";document.getElementById("gpsInfo").innerHTML="";document.getElementById("status").innerHTML="";document.getElementById("adminPassword").value="";document.getElementById("adminPanel").classList.add("hidden");document.getElementById("payrollSummary").innerHTML="";document.getElementById("app").classList.add("hidden");document.getElementById("cover").classList.remove("hidden");}
-function openApp(){document.getElementById("cover").classList.add("hidden");document.getElementById("app").classList.remove("hidden");setCurrentPayrollDate();updateClock();render();renderMyLeave();}
+function menuGo(id){
+ const target=document.getElementById(id);
+ if(!target){alert("ይህ ክፍል አልተገኘም።");return;}
+ if((id==="payrollSection"||id==="leaveManagement")&&document.getElementById("adminPanel").classList.contains("hidden")){
+   document.getElementById("adminSection").scrollIntoView({behavior:"smooth",block:"start"});
+   alert("Payroll እና Admin መረጃን ለማየት መጀመሪያ Admin Login ያድርጉ።");
+   document.getElementById("adminPassword").focus();
+   return;
+ }
+ target.scrollIntoView({behavior:"smooth",block:"start"});
+ updateMenuStats();
+}
+function updateMenuStats(){
+ const staff=document.getElementById("menuStaffCount");
+ const todayCount=document.getElementById("menuTodayCount");
+ const leaveCount=document.getElementById("menuLeaveCount");
+ const pendingCount=document.getElementById("menuPendingCount");
+ if(staff)staff.textContent=employees.length;
+ if(todayCount)todayCount.textContent=records.filter(r=>r.date===today()&&r.checkIn).length;
+ if(leaveCount)leaveCount.textContent=leaveRequests.length;
+ if(pendingCount)pendingCount.textContent=leaveRequests.filter(r=>r.status==="Pending").length;
+}
+function openApp(){document.getElementById("cover").classList.add("hidden");document.getElementById("app").classList.remove("hidden");setCurrentPayrollDate();updateClock();render();renderMyLeave();updateMenuStats();}
 updateClock();
-</script>
- 
-<script>
-(function () {
-  const firebaseConfig = {
-    apiKey: "AIzaSyBzI5x9-16-kIvd4HAd5U4HZh3PRvd62sk",
-    authDomain: "smart-attendance-chabbe.firebaseapp.com",
-    databaseURL: "https://smart-attendance-chabbe-default-rtdb.firebaseio.com/",
-    projectId: "smart-attendance-chabbe"
-  };
-
-  const status = document.createElement("p");
-  status.id = "firebaseConnectionStatus";
-  status.textContent = "Firebase: እየተገናኘ ነው...";
-  status.style.cssText =
-    "padding:10px;background:#fff4d6;border-radius:8px;margin:10px 0";
-  document.querySelector("header .container").appendChild(status);
-
-  const panel = document.getElementById("adminPanel");
-  const dashboard = document.createElement("section");
-  dashboard.className = "card";
-  dashboard.innerHTML = `
-    <h3>📊 የቀጥታ Admin Dashboard</h3>
-    <div class="grid">
-      <div class="stat">ጠቅላላ Attendance<b id="fbTotal">0</b></div>
-      <div class="stat">ዛሬ Check-in<b id="fbToday">0</b></div>
-      <div class="stat">የፈቃድ ጥያቄ<b id="fbLeave">0</b></div>
-      <div class="stat">Pending Leave<b id="fbPending">0</b></div>
-    </div>
-    <h4>የሁሉም ሠራተኞች Attendance</h4>
-    <div style="overflow-x:auto">
-      <table>
-        <thead>
-          <tr><th>ቀን</th><th>ID</th><th>ስም</th>
-          <th>Check In</th><th>Check Out</th><th>GPS</th></tr>
-        </thead>
-        <tbody id="fbAttendanceRows"></tbody>
-      </table>
-    </div>
-  `;
-  panel.insertBefore(dashboard, panel.children[2] || null);
-
-  let db;
-
-  function updateDashboard() {
-    document.getElementById("fbTotal").textContent = records.length;
-    document.getElementById("fbToday").textContent =
-      records.filter(r => r.date === today() && r.checkIn).length;
-    document.getElementById("fbLeave").textContent = leaveRequests.length;
-    document.getElementById("fbPending").textContent =
-      leaveRequests.filter(r => r.status === "Pending").length;
-
-    document.getElementById("fbAttendanceRows").innerHTML =
-      records.slice().reverse().map(r => `
-        <tr>
-          <td>${escapeHTML(r.date)}</td>
-          <td>${escapeHTML(r.id)}</td>
-          <td>${escapeHTML(r.name)}</td>
-          <td>${escapeHTML(r.checkIn || "--")}</td>
-          <td>${escapeHTML(r.checkOut || "--")}</td>
-          <td>${r.latitude ? "📍 GPS" : "--"}</td>
-        </tr>
-      `).join("") ||
-      '<tr><td colspan="6">ገና መዝገብ የለም።</td></tr>';
-  }
-
-  function refreshViews() {
-    if (typeof render === "function") render();
-    if (typeof renderMyLeave === "function") renderMyLeave();
-    if (typeof renderAdminLeave === "function") renderAdminLeave();
-    if (typeof renderSalaryTable === "function" &&
-        !panel.classList.contains("hidden")) {
-      renderSalaryTable();
-    }
-    updateDashboard();
-  }
-
-  function normalizeList(value) {
-    if (Array.isArray(value)) return value.filter(Boolean);
-    if (value && typeof value === "object") return Object.values(value);
-    return [];
-  }
-
-  try {
-    if (typeof firebase === "undefined") {
-      throw new Error("Firebase SDK አልተጫነም።");
-    }
-
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-
-    db.ref(".info/connected").on("value", snapshot => {
-      const connected = snapshot.val() === true;
-      status.textContent = connected
-        ? "✅ Firebase ተገናኝቷል — መረጃዎች ይመሳሰላሉ።"
-        : "⏳ Firebase እየተገናኘ ነው...";
-      status.style.background = connected ? "#e7f6ea" : "#fff4d6";
-    });
-
-    db.ref("attendanceRecords").on("value", snapshot => {
-      if (snapshot.exists()) {
-        records = normalizeList(snapshot.val());
-        localStorage.setItem(
-          "smartAttendanceRecords", JSON.stringify(records)
-        );
-      } else if (records.length) {
-        db.ref("attendanceRecords").set(records);
-      }
-      refreshViews();
-    }, showFirebaseError);
-
-    db.ref("leaveRequests").on("value", snapshot => {
-      if (snapshot.exists()) {
-        leaveRequests = normalizeList(snapshot.val());
-        localStorage.setItem(
-          "smartAttendanceLeaveRequests", JSON.stringify(leaveRequests)
-        );
-      } else if (leaveRequests.length) {
-        db.ref("leaveRequests").set(leaveRequests);
-      }
-      refreshViews();
-    }, showFirebaseError);
-
-    db.ref("employeeSalaries").on("value", snapshot => {
-      if (snapshot.exists()) {
-        salaries = snapshot.val() || {};
-        localStorage.setItem(
-          "smartAttendanceSalaries", JSON.stringify(salaries)
-        );
-      } else if (Object.keys(salaries).length) {
-        db.ref("employeeSalaries").set(salaries);
-      }
-      refreshViews();
-    }, showFirebaseError);
-
-    // Attendance save: local copy and shared database.
-    save = function () {
-      localStorage.setItem(
-        "smartAttendanceRecords", JSON.stringify(records)
-      );
-      return db.ref("attendanceRecords").set(records)
-        .catch(showFirebaseError);
-    };
-
-    // Leave requests and their approval status.
-    saveLeaveRequests = function () {
-      localStorage.setItem(
-        "smartAttendanceLeaveRequests", JSON.stringify(leaveRequests)
-      );
-      return db.ref("leaveRequests").set(leaveRequests)
-        .catch(showFirebaseError);
-    };
-
-    // Salary save.
-    saveSalaries = function () {
-      employees.forEach(e => {
-        const input = document.getElementById("salary_" + e.id);
-        if (input) salaries[e.id] = Number(input.value) || 0;
-      });
-      localStorage.setItem(
-        "smartAttendanceSalaries", JSON.stringify(salaries)
-      );
-      db.ref("employeeSalaries").set(salaries)
-        .then(() => alert("✅ የደመወዝ መረጃ ተቀምጧል።"))
-        .catch(showFirebaseError);
-    };
-
-    saveSalariesSilent = function () {
-      employees.forEach(e => {
-        const input = document.getElementById("salary_" + e.id);
-        if (input) salaries[e.id] = Number(input.value) || 0;
-      });
-      localStorage.setItem(
-        "smartAttendanceSalaries", JSON.stringify(salaries)
-      );
-      db.ref("employeeSalaries").set(salaries)
-        .catch(showFirebaseError);
-    };
-
-    function showFirebaseError(error) {
-      console.error("Firebase error:", error);
-      status.textContent =
-        "❌ Firebase ስህተት: " + (error.message || "ግንኙነቱን ያረጋግጡ።");
-      status.style.background = "#fdecec";
-    }
-
-    updateDashboard();
-  } catch (error) {
-    console.error(error);
-    status.textContent = "❌ Firebase አልተጀመረም። SDK እና Config ያረጋግጡ።";
-    status.style.background = "#fdecec";
-  }
-})();
+setInterval(updateMenuStats,3000);
+startFirebaseSync();
 </script>
 </body>
 </html>
